@@ -2,7 +2,6 @@
 <html lang="zh-CN">
   <head>
 <!--customCss-->
-</head>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" />
@@ -36,25 +35,27 @@
   window.disableddarkmode = true;
 </script>
 <!--BackgroundEnd-->
-<!--BackgroundMStart-->
-<style>
-  body {
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-attachment: fixed;
-    background-image: url("<!--BackgroundMUrl-->");
-  }
+  <!--BackgroundMStart-->
+  <style>
+    
+  @media only screen and (max-width:480px){
+    body {
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-attachment: fixed;
+      background-image: url("<!--BackgroundMUrl-->");
+    }
 
-  .mdui-shadow-3 {
-    background: rgba(255, 255, 255, 0.5);
-  }
-</style>
+    .mdui-shadow-3 {
+      background: rgba(255, 255, 255, 0.5);
+    }}
+  </style>
 <script>
   window.disableddarkmode = true;
 </script>
 <!--BackgroundMEnd-->
 
-  </head>
+</head>
   <body
     class="mdui-appbar-with-toolbar mdui-theme-layout-auto mdui-loaded mdui-theme-accent-pink"
   >
