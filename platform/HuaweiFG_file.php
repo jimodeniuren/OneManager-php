@@ -71,6 +71,7 @@ function GetPathSetting($event, $context)
     $_SERVER['host'] = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'];
     $_SERVER['referhost'] = explode('/', $event['headers']['referer'])[2];
     $_SERVER['HTTP_TRANSLATE'] = $event['headers']['translate'];//'f'
+    $_SERVER['HTTP_IF_MODIFIED_SINCE'] = $event['headers']['if-modified-since'];
     $_SERVER['_APP_SHARE_DIR'] = '/var/share/CFF/processrouter';
     return $path;
 }
@@ -867,4 +868,8 @@ class Signer
         curl_setopt($curl, CURLOPT_NOBODY, FALSE);
         return $curl;
     }
+}
+
+function WaitFunction() {
+    return true;
 }

@@ -6,6 +6,7 @@ include 'conststr.php';
 include 'common.php';
 
 //echo '<pre>'. json_encode($_SERVER, JSON_PRETTY_PRINT).'</pre>';
+//echo '<pre>'. json_encode($_ENV, JSON_PRETTY_PRINT).'</pre>';
 if (isset($_SERVER['USER'])&&$_SERVER['USER']==='qcloud') {
     if (getenv('ONEMANAGER_CONFIG_SAVE')=='file') include 'platform/TencentSCF_file.php';
     else include 'platform/TencentSCF_env.php';
@@ -29,7 +30,23 @@ if (isset($_SERVER['USER'])&&$_SERVER['USER']==='qcloud') {
         header($headerName . ': ' . $headerVal, true);
     }
     http_response_code($re['statusCode']);
-    echo $re['body'];
+    if ($re['isBase64Encoded']) echo base64_decode($re['body']);
+    else echo $re['body'];
+} elseif (isset($_SERVER['DOCUMENT_ROOT'])&&$_SERVER['DOCUMENT_ROOT']==='/var/task/user') {
+    if (getenv('ONEMANAGER_CONFIG_SAVE')=='env') include 'platform/Vercel_env.php';
+    else include 'platform/Vercel.php';
+    $path = getpath();
+    //echo 'path:'. $path;
+    $_GET = getGET();
+    //echo '<pre>'. json_encode($_GET, JSON_PRETTY_PRINT).'</pre>';
+    $re = main($path);
+    $sendHeaders = array();
+    foreach ($re['headers'] as $headerName => $headerVal) {
+        header($headerName . ': ' . $headerVal, true);
+    }
+    http_response_code($re['statusCode']);
+    if ($re['isBase64Encoded']) echo base64_decode($re['body']);
+    else echo $re['body'];
 } else {
     include 'platform/Normal.php';
     $path = getpath();
@@ -43,7 +60,8 @@ if (isset($_SERVER['USER'])&&$_SERVER['USER']==='qcloud') {
         header($headerName . ': ' . $headerVal, true);
     }
     http_response_code($re['statusCode']);
-    echo $re['body'];
+    if ($re['isBase64Encoded']) echo base64_decode($re['body']);
+    else echo $re['body'];
 }
 
 // Tencent SCF
@@ -90,7 +108,7 @@ function handler($event, $context)
 
         $re = main($path);
 
-        return new RingCentral\Psr7\Response($re['statusCode'], $re['headers'], $re['body']);
+        return new RingCentral\Psr7\Response($re['statusCode'], $re['headers'], $re['isBase64Encoded']?base64_decode($re['body']):$re['body']);
 
     } elseif ($_SERVER['_APP_SHARE_DIR']=='/var/share/CFF/processrouter') {
         // Huawei FG
