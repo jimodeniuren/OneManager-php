@@ -47,13 +47,31 @@ if (isset($_SERVER['USER'])&&$_SERVER['USER']==='qcloud') {
     http_response_code($re['statusCode']);
     if ($re['isBase64Encoded']) echo base64_decode($re['body']);
     else echo $re['body'];
-} else {
-    include 'platform/Normal.php';
+} elseif (isset($_SERVER['DOCUMENT_ROOT'])&&substr($_SERVER['DOCUMENT_ROOT'], 0, 13)==='/home/runner/') {
+    include 'platform/Replit.php';
+
     $path = getpath();
     //echo 'path:'. $path;
     $_GET = getGET();
     //echo '<pre>'. json_encode($_GET, JSON_PRETTY_PRINT).'</pre>';
 
+    $re = main($path);
+    $sendHeaders = array();
+    foreach ($re['headers'] as $headerName => $headerVal) {
+        header($headerName . ': ' . $headerVal, true);
+    }
+    http_response_code($re['statusCode']);
+    if ($re['isBase64Encoded']) echo base64_decode($re['body']);
+    else echo $re['body'];
+} else {
+    include 'platform/Normal.php';
+    if (!function_exists('curl_init')) {
+        return message('<font color="red">Need curl</font>, please install php-curl.', 'Error', 500);
+    }
+    $path = getpath();
+    //echo 'path:'. $path;
+    $_GET = getGET();
+    //echo '<pre>'. json_encode($_GET, JSON_PRETTY_PRINT).'</pre>';
     $re = main($path);
     $sendHeaders = array();
     foreach ($re['headers'] as $headerName => $headerVal) {
@@ -70,6 +88,9 @@ function main_handler($event, $context)
     $event = json_decode(json_encode($event), true);
     $context = json_decode(json_encode($context), true);
     printInput($event, $context);
+    if ( $event['requestContext']['serviceId'] === substr($event['headers']['host'], 0, strlen($event['requestContext']['serviceId'])) ) {
+        if ($event['path']==='/' . $context['function_name']) return output('add / at last.', 308, ['Location'=>'/'.$event['requestContext']['stage'].'/'.$context['function_name'].'/']);
+    }
     unset($_POST);
     unset($_GET);
     unset($_COOKIE);

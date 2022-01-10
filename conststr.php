@@ -7,7 +7,7 @@ $exts['img'] = ['ico', 'bmp', 'gif', 'jpg', 'jpeg', 'jpe', 'jfif', 'tif', 'tiff'
 $exts['music'] = ['mp3', 'wma', 'flac', 'ape', 'wav', 'ogg', 'm4a'];
 $exts['office'] = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 $exts['txt'] = ['txt', 'bat', 'sh', 'php', 'asp', 'js', 'css', 'json', 'html', 'c', 'cpp', 'md', 'py', 'omf'];
-$exts['video'] = ['mp4', 'webm', 'mkv', 'mov', 'flv', 'blv', 'avi', 'wmv', 'm3u8', 'rm', 'ts', 'rmvb'];
+$exts['video'] = ['mp4', 'webm', 'mkv', 'mov', 'flv', 'blv', 'avi', 'wmv', 'm3u8', 'rm', '3gp', 'rmvb'];
 $exts['zip'] = ['zip', 'rar', '7z', 'gz', 'tar'];
 
 $constStr = [
@@ -1126,9 +1126,9 @@ $constStr = [
         'ar-sa' => 'اختيار اللغة',
     ],
     'RefreshCache' => [
-        'en-us' => 'RefreshCache',
-        'zh-cn' => '刷新缓存',
-        'zh-tw' => '重新整理快取',
+        'en-us' => 'Refresh Cache of Current Folder',
+        'zh-cn' => '刷新当前目录的缓存',
+        'zh-tw' => '重新整理当前資料夾快取',
         'ja' => 'キャッシュを再構築',
         'ko-kr' => '캐시 플러시',
         'fa' => 'رفرش cache',

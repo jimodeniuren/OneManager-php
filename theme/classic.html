@@ -229,7 +229,7 @@
                 <table class="list-table" id="list-table">
                     <tr id="tr0">
                         <th class="file">
-                            <a onclick="sortby('a');"><!--constStr@File--></a>
+                            <a id="file_a0" fileid="<!--FolderId-->" onclick="sortby('a');"><!--constStr@File--></a>
 <!--ShowThumbnailsStart-->
                             &nbsp;&nbsp;&nbsp;
                             <label><input type="checkbox" id="originalpic"><!--constStr@OriginalPic--></label>
@@ -487,7 +487,7 @@
 <!--MdRequireStart--><link rel="stylesheet" href="//unpkg.zhimg.com/github-markdown-css@3.0.1/github-markdown.css">
 <script type="text/javascript" src="//unpkg.zhimg.com/marked@0.6.2/marked.min.js"></script><!--MdRequireEnd-->
 <!--GuestUploadStart--><script type="text/javascript" src="//cdn.bootcss.com/spark-md5/3.0.0/spark-md5.min.js"></script><!--GuestUploadEnd-->
-<!--AliyundriveUploadJsStart--><script src="https://cdn.bootcss.com/js-sha1/0.6.0/sha1.min.js"></script><!--AliyundriveUploadJsEnd-->
+<!--AliyundriveUploadJsStart--><script src="https://cdn.jsdelivr.net/npm/js-sha1@0.6.0/src/sha1.min.js"></script><!--AliyundriveUploadJsEnd-->
 <!--IsFileStart--><!--IspdfFileStart--><script src="//cdn.bootcss.com/pdf.js/2.3.200/pdf.min.js"></script><!--IspdfFileEnd--><!--IsFileEnd-->
 <!--ListEnd-->
 <script type="text/javascript">
@@ -529,7 +529,10 @@
 <!--IsFileStart-->
     var $url = document.getElementById('url');
     if ($url) {
-        $url.innerHTML = location.protocol + '//' + location.host + $url.innerHTML;
+        //$url.innerHTML = location.protocol + '//' + location.host + $url.innerHTML;
+        let url = location.href;
+        url = url.substr(0, url.length-8);
+        $url.innerHTML = url.replace(/&amp;/g, '&amp;amp;');
         $url.style.height = $url.scrollHeight + 'px';
     }
 <!--IsofficeFileStart-->
@@ -782,6 +785,7 @@
     }
     function size_reformat(str) {
         if (str.substr(-1)==' ') str=str.substr(0,str.length-1);
+        if (str.substr(-2)=='TB') num=str.substr(0,str.length-3)*1024*1024*1024*1024;
         if (str.substr(-2)=='GB') num=str.substr(0,str.length-3)*1024*1024*1024;
         if (str.substr(-2)=='MB') num=str.substr(0,str.length-3)*1024*1024;
         if (str.substr(-2)=='KB') num=str.substr(0,str.length-3)*1024;
@@ -1474,17 +1478,18 @@
         document.getElementById('mask').style.display='';
         //document.getElementById('mask').style.width=document.documentElement.scrollWidth+'px';
         document.getElementById('mask').style.height=document.documentElement.scrollHeight<window.innerHeight?window.innerHeight:document.documentElement.scrollHeight+'px';
+        var str;
         if (num=='') {
-            var str='';
-            var fileid='';
+            str = '';
+            num = 0;
         } else {
-            var str=decodeURIComponent(document.getElementById('file_a'+num).href);
+            str = decodeURIComponent(document.getElementById('file_a'+num).href);
             if (str.substr(-1)==' ') str=str.substr(0, str.length-1);
             if (str.substr(-1)=='/') str=str.substr(0, str.length-1);
             if (str.substr(-8)=='?preview') str=str.substr(0, str.length-8);
             if (str.lastIndexOf('/')>-1) str=str.substr(str.lastIndexOf('/')+1);
-            var fileid=document.getElementById('file_a'+num).attributes['fileid'].nodeValue;
         }
+        var fileid = document.getElementById('file_a'+num).attributes['fileid'].nodeValue;
         document.getElementById(action + '_div').style.display='';
         document.getElementById(action + '_label').innerText=str;//.replace(/&/,'&amp;');
         document.getElementById(action + '_sid').value=num;
@@ -1642,6 +1647,6 @@
 <!--EncryptedEnd-->
 </script>
 <script src="https://cdn.jsdelivr.net/npm/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-<!--LoginStart--><script src="https://cdn.bootcss.com/js-sha1/0.6.0/sha1.min.js"></script><!--LoginEnd-->
+<!--LoginStart--><script src="https://cdn.jsdelivr.net/npm/js-sha1@0.6.0/src/sha1.min.js"></script><!--LoginEnd-->
 <!--customScript-->
 </html>
