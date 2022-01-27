@@ -21,7 +21,7 @@ $EnvConfigs = [
 
     'admin'             => 0b000,
     'adminloginpage'    => 0b010,
-    'autoJumpFirstDisk' => 0b010,
+    //'autoJumpFirstDisk' => 0b010,
     'background'        => 0b011,
     'backgroundm'       => 0b011,
     'disableShowThumb'  => 0b010,
@@ -38,6 +38,10 @@ $EnvConfigs = [
     'useBasicAuth'      => 0b010,
     'referrer'          => 0b011,
     'forceHttps'        => 0b010,
+    'globalHeadOmfUrl'  => 0b011,
+    'globalHeadMdUrl'   => 0b011,
+    'globalReadmeMdUrl' => 0b011,
+    'globalFootOmfUrl'  => 0b011,
 
     'Driver'            => 0b100,
     'client_id'         => 0b100,
@@ -183,7 +187,7 @@ function main($path)
     } else {
         $adminloginpage = getConfig('adminloginpage');
     }
-    if (isset($_GET[$adminloginpage])) {
+    if (isset($_GET['login'])&&$_GET['login']==$adminloginpage) {
         /*if (isset($_GET['preview'])) {
             $url = $_SERVER['PHP_SELF'] . '?preview';
         } else {
@@ -222,9 +226,10 @@ function main($path)
             return output('Please visit <a href="' . $tmp . '">' . $tmp . '</a>.', 301, [ 'Location' => $tmp ]);
         }
         if ($_SERVER['admin']) {
+            if (!$_SERVER['disktag']) $_SERVER['disktag'] = '';
             if (!class_exists($_GET['AddDisk'])) require 'disk' . $slash . $_GET['AddDisk'] . '.php';
-                $drive = new $_GET['AddDisk']($_GET['disktag']);
-                return $drive->AddDisk();
+            $drive = new $_GET['AddDisk']($_GET['disktag']);
+            return $drive->AddDisk();
         } else {
             $url = $_SERVER['PHP_SELF'];
             /*if ($_GET) {
@@ -260,7 +265,7 @@ function main($path)
                 // return a json
                 return output(json_encode($files), 200, ['Content-Type' => 'application/json']);
             }
-            if (getConfig('autoJumpFirstDisk')) return output('', 302, [ 'Location' => path_format($_SERVER['base_path'].'/'.$disktags[0].'/') ]);
+            //if (getConfig('autoJumpFirstDisk')) return output('', 302, [ 'Location' => path_format($_SERVER['base_path'].'/'.$disktags[0].'/') ]);
         } else {
             $_SERVER['disktag'] = splitfirst( substr(path_format($path), 1), '/' )[0];
             //$pos = strpos($path, '/');
@@ -294,19 +299,17 @@ function main($path)
 
     if (!isreferhost()) return message('Must visit from designated host', 'NOT_ALLOWED', 403);
 
-    // Show disks in root
-    if ($files['showname'] == 'root') return render_list($path, $files);
-
-    if (!driveisfine($_SERVER['disktag'], $drive)) return render_list();
-
     // Operate
     if ($_SERVER['ajax']) {
+        //error_log1($_SERVER['REQUEST_METHOD']);
         if ($_GET['action']=='del_upload_cache') {
             // del '.tmp' without login. 无需登录即可删除.tmp后缀文件
+            if (!driveisfine($_SERVER['disktag'], $drive)) return output('Not in drive, or disk [' . $_SERVER['disktag'] . '] error.', 403);
             savecache('path_' . $path1, '', $_SERVER['disktag'], 1); // clear cache.
             return $drive->del_upload_cache($path);
         }
         if ($_GET['action']=='upbigfile') {
+            if (!driveisfine($_SERVER['disktag'], $drive)) return output('Not in drive, or disk [' . $_SERVER['disktag'] . '] error.', 403);
             if (!$_SERVER['admin']) {
                 if (!$_SERVER['is_guestup_path']) return output('Not_Guest_Upload_Folder', 400);
                 if (strpos($_GET['upbigfilename'], '../')!==false) return output('Not_Allow_Cross_Path', 400);
@@ -325,6 +328,12 @@ function main($path)
     } else {
         if ($_SERVER['ajax']) return output(getconstStr('RefreshtoLogin'),401);
     }
+
+    // Show disks in root
+    if ($files['showname'] == 'root') return render_list($path, $files);
+
+    if (!driveisfine($_SERVER['disktag'], $drive)) return render_list();
+
     $_SERVER['ishidden'] = passhidden($path);
     if (isset($_GET['thumbnails'])) {
         if ($_SERVER['ishidden']<4) {
@@ -1132,6 +1141,7 @@ function adminform($name = '', $pass = '', $storage = '', $path = '')
 function adminoperate($path)
 {
     global $drive;
+    if ($_SERVER['REQUEST_METHOD']=='POST') if (!driveisfine($_SERVER['disktag'], $drive)) return output('Not in drive, or disk [' . $_SERVER['disktag'] . '] error.', 403);
     $path1 = path_format($_SERVER['list_path'] . '/' . $path);
     if (substr($path1, -1)=='/') $path1=substr($path1, 0, -1);
     $tmpget = $_GET;
@@ -1645,11 +1655,9 @@ output:
     }
 </script>';
     } else {
-        //$_GET['disktag'] = '';
-        $Driver_arr = scandir(__DIR__ . $slash . 'disk');
         if (count($disktags)>1) {
             $frame .= '
-<script src="//cdn.bootcss.com/Sortable/1.8.3/Sortable.js"></script>
+<script src="http://sortablejs.github.io/Sortable/Sortable.js"></script>
 <style>
     .sortable-ghost {
         opacity: 0.4;
@@ -1660,24 +1668,26 @@ output:
         cursor: move;
     }
 </style>
+' . getconstStr('DragSort') . ':
+<form id="sortdisks_form" action="" method="post" style="margin: 0" onsubmit="return dragsort(this);">
 <table border=1>
-    <form id="sortdisks_form" action="" method="post" style="margin: 0" onsubmit="return dragsort(this);">
-    <tr id="sortdisks">
-        <input type="hidden" name="disktag_sort" value="">';
+    <tbody id="sortdisks">
+    <input type="hidden" name="disktag_sort" value="">';
             $num = 0;
             foreach ($disktags as $disktag) {
                 if ($disktag!='') {
                     $num++;
                     $frame .= '
-        <td>' . $disktag . '</td>';
+        <tr class="sorthandle"><td>' . $num . '</td><td> ' . $disktag . '</td></tr>';
                 }
             }
             $frame .= '
-        <input name="_admin" type="hidden" value="">
-    </tr>
-    <tr><td colspan="' . $num . '">' . getconstStr('DragSort') . '<input type="submit" name="submit1" value="' . getconstStr('SubmitSortdisks') . '"></td></tr>
-    </form>
+    </tbody>
+    <input name="_admin" type="hidden" value="">
 </table>
+    <input type="submit" name="submit1" value="' . getconstStr('SubmitSortdisks') . '">
+</form>
+
 <script>
     var disks=' . json_encode($disktags) . ';
     function change(arr, oldindex, newindex) {
@@ -1710,7 +1720,8 @@ output:
         }
         return true;
     }
-    Sortable.create(document.getElementById(\'sortdisks\'), {
+    new Sortable(document.getElementById(\'sortdisks\'), {
+        handle: \'.sorthandle\',
         animation: 150,
         onEnd: function (evt) { //拖拽完毕之后发生该事件
             //console.log(evt.oldIndex);
@@ -1723,6 +1734,7 @@ output:
     });
 </script><br>';
         }
+        $Driver_arr = scandir(__DIR__ . $slash . 'disk');
         $frame .= '
 <select name="DriveType" onchange="changedrivetype(this.options[this.options.selectedIndex].value)">';
         foreach ($Driver_arr as $v1) {
@@ -1747,7 +1759,7 @@ output:
             $canOneKeyUpate = 1;
         } elseif (isset($_SERVER['HEROKU_APP_DIR'])&&$_SERVER['HEROKU_APP_DIR']==='/app') {
             $canOneKeyUpate = 1;
-        } elseif (isset($_SERVER['FC_SERVER_PATH'])&&$_SERVER['FC_SERVER_PATH']==='/var/fc/runtime/php7.2') {
+        } elseif (isset($_SERVER['FC_FUNC_CODE_PATH'])) {
             $canOneKeyUpate = 1;
         } elseif (isset($_SERVER['BCE_CFC_RUNTIME_NAME'])&&$_SERVER['BCE_CFC_RUNTIME_NAME']=='php7') {
             $canOneKeyUpate = 1;
@@ -2012,31 +2024,30 @@ output:
     }
     $html .= '
 <style type="text/css">
-    .tabs td { padding: 5px; }
+    .tabs { padding: 10px; white-space: nowrap; overflow-x: auto;}
+    .tabs a { margin:0 10px; }
 </style>
-<table border=0>
-    <tr class="tabs">';
+<div class="tabs">';
     if ($_GET['disktag']==''||$_GET['disktag']===true||!in_array($_GET['disktag'], $disktags)) {
         if ($_GET['setup']==='platform') $html .= '
-        <td><a href="?setup">' . getconstStr('Home') . '</a></td>
-        <td>' . getconstStr('PlatformConfig') . '</td>';
+    <a href="?setup">' . getconstStr('Home') . '</a>
+    ' . getconstStr('PlatformConfig') . '';
         else $html .= '
-        <td>' . getconstStr('Home') . '</td>
-        <td><a href="?setup=platform">' . getconstStr('PlatformConfig') . '</a></td>';
+    ' . getconstStr('Home') . '
+    <a href="?setup=platform">' . getconstStr('PlatformConfig') . '</a>';
     } else $html .= '
-        <td><a href="?setup">' . getconstStr('Home') . '</a></td>
-        <td><a href="?setup=platform">' . getconstStr('PlatformConfig') . '</a></td>';
+    <a href="?setup">' . getconstStr('Home') . '</a>
+    <a href="?setup=platform">' . getconstStr('PlatformConfig') . '</a>';
     foreach ($disktags as $disktag) {
         if ($disktag!='') {
             if ($_GET['disktag']===$disktag) $html .= '
-        <td>' . $disktag . '</td>';
+    ' . $disktag . '';
             else $html .= '
-        <td><a href="?setup&disktag=' . $disktag . '">' . $disktag . '</a></td>';
+    <a href="?setup&disktag=' . $disktag . '">' . $disktag . '</a>';
         }
     }
     $html .= '
-    </tr>
-</table><br>';
+</div><br>';
     $html .= $frame;
     $html .= '<script>
     var inputAdminStorage = document.getElementsByName("_admin");
@@ -2847,6 +2858,15 @@ function render_list($path = '', $files = [])
         $tmp = splitfirst($tmp[1], '<!--HeadomfEnd-->');
         if (isset($files['list']['head.omf'])) {
             $headomf = str_replace('<!--HeadomfContent-->', get_content(path_format($path . '/' . $files['list']['head.omf']['name']))['content']['body'], $tmp[0]);
+        } elseif (getConfig('globalHeadOmfUrl')) {
+            if (!$headomfcontent = getcache('HeadomfContent')) {
+                $headomfres = curl('GET', getConfig('globalHeadOmfUrl'), '', [], 0, 1);
+                if ($headomfres['stat']==200) {
+                    $headomfcontent = $headomfres['body'];
+                    savecache('HeadomfContent', $headomfcontent);
+                } else $headomfcontent = $headomfres['stat'];
+            }
+            $headomf = str_replace('<!--HeadomfContent-->', $headomfcontent, $tmp[0]);
         }
         $html .= $headomf . $tmp[1];
         
@@ -2855,6 +2875,20 @@ function render_list($path = '', $files = [])
         $tmp = splitfirst($tmp[1], '<!--HeadmdEnd-->');
         if (isset($files['list']['head.md'])) {
             $headmd = str_replace('<!--HeadmdContent-->', get_content(path_format($path . '/' . $files['list']['head.md']['name']))['content']['body'], $tmp[0]);
+            $html .= $headmd . $tmp[1];
+            while (strpos($html, '<!--HeadmdStart-->')) {
+                $html = str_replace('<!--HeadmdStart-->', '', $html);
+                $html = str_replace('<!--HeadmdEnd-->', '', $html);
+            }
+        } elseif (getConfig('globalHeadMdUrl')) {
+            if (!$headmdcontent = getcache('HeadmdContent')) {
+                $headmdres = curl('GET', getConfig('globalHeadMdUrl'), '', [], 0, 1);
+                if ($headmdres['stat']==200) {
+                    $headmdcontent = $headmdres['body'];
+                    savecache('HeadmdContent', $headmdcontent);
+                } else $headmdcontent = $headmdres['stat'];
+            }
+            $headmd = str_replace('<!--HeadmdContent-->', $headmdcontent, $tmp[0]);
             $html .= $headmd . $tmp[1];
             while (strpos($html, '<!--HeadmdStart-->')) {
                 $html = str_replace('<!--HeadmdStart-->', '', $html);
@@ -2894,6 +2928,20 @@ function render_list($path = '', $files = [])
                 $html = str_replace('<!--ReadmemdStart-->', '', $html);
                 $html = str_replace('<!--ReadmemdEnd-->', '', $html);
             }
+        } elseif (getConfig('globalReadmeMdUrl')) {
+            if (!$readmemdcontent = getcache('ReadmemdContent')) {
+                $readmemdres = curl('GET', getConfig('globalReadmeMdUrl'), '', [], 0, 1);
+                if ($readmemdres['stat']==200) {
+                    $readmemdcontent = $readmemdres['body'];
+                    savecache('ReadmemdContent', $readmemdcontent);
+                } else $readmemdcontent = $readmemdres['stat'];
+            }
+            $Readmemd = str_replace('<!--ReadmemdContent-->', $readmemdcontent, $tmp[0]);
+            $html .= $Readmemd . $tmp[1];
+            while (strpos($html, '<!--ReadmemdStart-->')) {
+                $html = str_replace('<!--ReadmemdStart-->', '', $html);
+                $html = str_replace('<!--ReadmemdEnd-->', '', $html);
+            }
         } else {
             $html .= $tmp[1];
             $tmp[1] = 'a';
@@ -2905,12 +2953,21 @@ function render_list($path = '', $files = [])
             }
         }
 
-        
+
         $tmp = splitfirst($html, '<!--FootomfStart-->');
         $html = $tmp[0];
         $tmp = splitfirst($tmp[1], '<!--FootomfEnd-->');
         if (isset($files['list']['foot.omf'])) {
             $Footomf = str_replace('<!--FootomfContent-->', get_content(path_format($path . '/' . $files['list']['foot.omf']['name']))['content']['body'], $tmp[0]);
+        } elseif (getConfig('globalFootOmfUrl')) {
+            if (!$footomfcontent = getcache('FootomfContent')) {
+                $footres = curl('GET', getConfig('globalFootOmfUrl'), '', [], 0, 1);
+                if ($footres['stat']==200) {
+                    $footomfcontent = $footres['body'];
+                    savecache('FootomfContent', $footomfcontent);
+                } else $footomfcontent = $footres['stat'];
+            }
+            $Footomf = str_replace('<!--FootomfContent-->', $footomfcontent, $tmp[0]);
         }
         $html .= $Footomf . $tmp[1];
 
@@ -2918,7 +2975,7 @@ function render_list($path = '', $files = [])
         $tmp = splitfirst($html, '<!--MdRequireStart-->');
         $html = $tmp[0];
         $tmp = splitfirst($tmp[1], '<!--MdRequireEnd-->');
-        if (isset($files['list']['head.md'])||isset($files['list']['readme.md'])) {
+        if (isset($files['list']['head.md'])||isset($files['list']['readme.md'])||getConfig('globalHeadMdUrl')||getConfig('globalReadmeMdUrl')) {
             $html .= $tmp[0] . $tmp[1];
         } else $html .= $tmp[1];
 
